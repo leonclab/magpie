@@ -6121,6 +6121,10 @@ function renderProviders() {
     if (p.sponsored) name.append(el("span", "badge", t("sponsored")));
     if (p.off) name.append(el("span", "badge off", t("Switched off")));
     if (p.move && p.move.state !== "plugin") name.append(deprecatedBadge());
+    if (p.account?.rest) {
+      const pill = restPill(p.account.rest);
+      if (pill) name.append(pill);
+    }
     const n = p.models.filter((m) => m.on).length;
     // a provider that only draws images (Settings → Image generation) says so
     const models = n ? t(n === 1 ? "{n} model" : "{n} models", { n })
@@ -12906,6 +12910,10 @@ function renderAccounts(a, p) {
       dot.onclick = () => accountAction("login/" + (on ? "off" : "on"), { agent: a.agent, user: l.user });
     }
     row.append(dot, accountNameButton(p, l.user), el("span", "plan", accountPlan({ agent: a.agent, builtin: a.builtin, plan: l.plan })));
+    if (l.rest) {
+      const pill = restPill(l.rest);
+      if (pill) row.append(pill);
+    }
     // its own models (#474), when there is another account to send the rest to
     const [amPill, amBox] = ls.length > 1 || accountModelsOf(p, l.user).length ? accountModels(p, l.user, false, l.user) : [];
     if (amPill) row.append(amPill);
@@ -15457,6 +15465,28 @@ function ownLine(sub) {
   return line;
 }
 
+// restPill shows an account or provider resting in routing (e.g. 429 rate limit cooldown)
+function restPill(r) {
+  if (!r || !r.until) return null;
+  const at = new Date(r.until).getTime();
+  if (at <= Date.now()) return null;
+  const isRate = r.why === "rate" || r.status === 429;
+  const b = el("button", "badge resting" + (isRate ? " rate" : ""));
+  b.type = "button";
+  const inText = untilText(at);
+  b.textContent = isRate ? t("429 cooldown · {in}", { in: inText }) : t("Resting · {in}", { in: inText });
+  const time = new Date(r.until).toLocaleTimeString();
+  b.title = isRate
+    ? t("Rate limited (429): cooling down until {time} ({in}). Click to view in Routing.", { time, in: inText })
+    : t("Resting until {time} ({in}). Click to view in Routing.", { time, in: inText });
+  b.onclick = (e) => {
+    e.stopPropagation();
+    if (mode === "panel") setPanelTab("routing");
+    else show("routing");
+  };
+  return b;
+}
+
 // lazy: drawn only if something the panel shows changed (a load's answer,
 // the window coming back), not each time it is asked (#3192)
 function renderQuotas(lazy) {
@@ -15552,10 +15582,20 @@ function renderQuotas(lazy) {
         const auto = brief && autoResetBrief(sub);
         if (auto) who.append(auto);
         if (sub.plan || sub.until) who.append(planSpan(sub));
+        if (sub.rest) {
+          const pill = restPill(sub.rest);
+          if (pill) who.append(pill);
+        }
         if (every) who.append(every);
         if (several) who.append(usageAcctFold(sub, !brief));
         card.append(who);
-      } else if (every) head.append(every);
+      } else {
+        if (every) head.append(every);
+        if (sub.rest) {
+          const pill = restPill(sub.rest);
+          if (pill) head.append(pill);
+        }
+      }
       // in brief: each window's name, figure and bar, when it resets in
       // its tooltip; the curve and the rest only in full
       if (brief) meters.classList.add("brief");
@@ -17223,6 +17263,10 @@ function panelQuotaCard(q) {
   const who = el("span", "pq-who");
   who.append(el("span", "pq-user", q.alias || q.user || q.name));
   if ((q.user || q.alias) && window.hideAccounts) who.append(hideAccounts.eye(q.user || q.alias));
+  if (q.rest) {
+    const pill = restPill(q.rest);
+    if (pill) who.append(pill);
+  }
   card.append(who);
   card.title = [q.name, q.alias, q.user, q.seat && q.seat !== q.alias && "≡ " + q.seat, q.plan, q.until ? planTerm(q) : "", q.balance && t("Balance") + " " + q.balance].filter(Boolean).join(" · ");
   if (q.error) {

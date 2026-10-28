@@ -1170,6 +1170,32 @@ func restOf(id string) (Rest, bool) {
 	return r, true
 }
 
+// restOfAccount reports whether an account of a provider is resting.
+func restOfAccount(providerID, user string) (Rest, bool) {
+	if user != "" {
+		if r, ok := restOf(providerID + "@" + strings.ToLower(user)); ok {
+			return r, true
+		}
+	}
+	return restOf(providerID)
+}
+
+func init() {
+	provider.AccountRest = func(providerID, user string) *provider.QuotaRest {
+		r, ok := restOfAccount(providerID, user)
+		if !ok {
+			return nil
+		}
+		return &provider.QuotaRest{
+			Why:      r.Why,
+			Status:   r.Status,
+			By:       r.By,
+			Until:    r.Until,
+			Failures: r.Failures,
+		}
+	}
+}
+
 // quotaWords are how vendors say "out of quota" or "slow down" when their
 // status code doesn't: some answer 400 or 403 with it.
 var quotaWords = regexp.MustCompile(`(?i)quota|insufficient|balance|credit|billing|out of budget|budget (exceeded|exhausted)|exceeded|rate.?limit|usage.?limit|limit.?reached|hit your .*limit|limit.{0,24}resets|too many requests|overloaded|余额|额度|欠费|限流|频率|套餐|用量|上限`)

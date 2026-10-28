@@ -309,6 +309,9 @@ func cardsServed(subs, plans, balances []SubscriptionQuota, served map[string]ti
 					q.LastServedAt = &t
 				}
 			}
+			if AccountRest != nil {
+				q.Rest = AccountRest(q.Provider, q.User)
+			}
 			out = append(out, q)
 		}
 	}

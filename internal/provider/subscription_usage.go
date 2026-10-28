@@ -210,6 +210,10 @@ type SubscriptionQuota struct {
 	// request through this computer's gateway, nil when it hasn't in the
 	// last 30 days (served.go); set by Quotas, never cached.
 	LastServedAt *time.Time `json:"lastServedAt,omitempty"`
+	// Rest is why the account or key is resting in routing, while it is:
+	// a 429 rate limit cooldown, quota exhausted, etc. Set by Quotas, never
+	// cached.
+	Rest *QuotaRest `json:"rest,omitempty"`
 	// Alias is the account's name of the user's own (AccountNames), else
 	// Seat; Seat is the name of the key plan this account's card stands
 	// in for (seatCards, #1515): the same GLM seat added both as a key
@@ -231,6 +235,19 @@ type SubscriptionQuota struct {
 	// including custom providers. Only these can share ZCode's allowance.
 	glmPlan bool
 }
+
+// QuotaRest is why an account or key is resting in routing: a 429 rate
+// limit cooldown, quota exhausted, etc.
+type QuotaRest struct {
+	Why      string    `json:"why"`              // "rate", "credit", "quota", etc.
+	Status   int       `json:"status,omitempty"` // 429, etc.
+	By       string    `json:"by,omitempty"`     // "cooldown", "retry-after", etc.
+	Until    time.Time `json:"until"`
+	Failures int       `json:"failures,omitempty"`
+}
+
+// AccountRest reports whether an account is resting; the gateway wires it.
+var AccountRest func(providerID, user string) *QuotaRest
 
 var subscriptionUsageCache struct {
 	sync.Mutex

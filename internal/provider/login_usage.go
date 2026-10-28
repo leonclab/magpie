@@ -164,6 +164,12 @@ func loginUsageAt(ctx context.Context, agent string) (map[string]SubscriptionQuo
 		}
 		noteHistory(qs, time.Now())
 	}
+	if AccountRest != nil {
+		for u, q := range out {
+			q.Rest = AccountRest(agent, u)
+			out[u] = q
+		}
+	}
 	return out, oldest, states
 }
 

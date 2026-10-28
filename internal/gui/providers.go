@@ -329,6 +329,8 @@ type accountJSON struct {
 	Builtin string `json:"builtin,omitempty"`
 	// WSL is the distro Claude Code runs in, for a Windows with none of its own
 	WSL string `json:"wsl,omitempty"`
+	// Rest is why the account is resting in routing, while it is.
+	Rest *provider.QuotaRest `json:"rest,omitempty"`
 }
 
 // accountLabel is the name and logo an account is shown with: its agent's,
@@ -710,6 +712,12 @@ func providerInfoWith(p provider.Provider, agents []agentUse, desktop map[string
 			out.Account.Logins = provider.Logins(p.ID)
 			if out.Icon == "" || out.Icon == "generic" {
 				out.Icon = out.Account.Icon
+			}
+		}
+		if provider.AccountRest != nil {
+			out.Account.Rest = provider.AccountRest(p.ID, a.User)
+			for i := range out.Account.Logins {
+				out.Account.Logins[i].Rest = provider.AccountRest(p.ID, out.Account.Logins[i].User)
 			}
 		}
 	}

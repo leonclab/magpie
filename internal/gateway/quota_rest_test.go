@@ -100,3 +100,23 @@ func TestQuotaRestsUntilItsReset(t *testing.T) {
 		}
 	}
 }
+
+func TestAccountRestWiredToProvider(t *testing.T) {
+	forgetRouting()
+	s := &Server{}
+	acct := candidate{p: provider.Provider{ID: "workbuddy", Account: &provider.Account{Agent: "workbuddy", User: "test-user"}}, rest: "workbuddy#test-user"}
+	h := http.Header{}
+	h.Set("Retry-After", "120")
+	s.restAfter(acct, 429, h, []byte("Too many requests"))
+
+	if provider.AccountRest == nil {
+		t.Fatal("provider.AccountRest is nil")
+	}
+	r := provider.AccountRest("workbuddy", "test-user")
+	if r == nil {
+		t.Fatal("expected resting info for workbuddy test-user, got nil")
+	}
+	if r.Why != failRate || r.Status != 429 {
+		t.Fatalf("unexpected rest: %+v", r)
+	}
+}
